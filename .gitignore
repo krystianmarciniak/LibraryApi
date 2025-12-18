@@ -1,0 +1,4 @@
+bin/
+obj/
+library.db
+*.db
