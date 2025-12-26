@@ -3,6 +3,7 @@ using LibraryApi.Dtos;
 using LibraryApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using LibraryApi.Mapping;
 
 namespace LibraryApi.Controllers;
 
@@ -13,9 +14,8 @@ public class BooksController : ControllerBase
   private readonly AppDbContext _db;
   public BooksController(AppDbContext db) => _db = db;
 
-  // GET /books oraz GET /books?authorId=1
   [HttpGet]
-  public async Task<ActionResult<IEnumerable<BookDto>>> GetAll([FromQuery] int? authorId)
+  public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks([FromQuery] int? authorId)
   {
     var q = _db.Books.Include(b => b.Author).AsNoTracking();
 
@@ -23,21 +23,19 @@ public class BooksController : ControllerBase
       q = q.Where(b => b.AuthorId == authorId.Value);
 
     var books = await q.ToListAsync();
-    return Ok(books.Select(ToDto));
+    return Ok(books.Select(b => b.ToDto()));
   }
 
-  // GET /books/{id}
   [HttpGet("{id:int}")]
-  public async Task<ActionResult<BookDto>> GetById(int id)
+  public async Task<ActionResult<BookDto>> GetBook(int id)
   {
     var book = await _db.Books.Include(b => b.Author).AsNoTracking()
         .FirstOrDefaultAsync(b => b.Id == id);
 
     if (book is null) return NotFound();
-    return Ok(ToDto(book));
+    return Ok(book.ToDto());
   }
 
-  // POST /books
   [HttpPost]
   public async Task<ActionResult<BookDto>> Create([FromBody] BookCreateDto dto)
   {
@@ -57,12 +55,12 @@ public class BooksController : ControllerBase
     await _db.SaveChangesAsync();
 
     book.Author = author;
-    return Created($"/books/{book.Id}", ToDto(book)); // 201
+    return Created($"/books/{book.Id}", book.ToDto());
   }
 
-  // PUT /books/{id}
+  // Author is eagerly loaded to match required response shape in tests
   [HttpPut("{id:int}")]
-  public async Task<IActionResult> Update(int id, [FromBody] BookUpdateDto dto)
+  public async Task<IActionResult> UpdateBook(int id, [FromBody] BookUpdateDto dto)
   {
     if (id != dto.Id) return BadRequest();
     if (!ModelState.IsValid) return BadRequest();
@@ -78,10 +76,9 @@ public class BooksController : ControllerBase
     book.AuthorId = dto.AuthorId;
 
     await _db.SaveChangesAsync();
-    return NoContent(); // 204
+    return NoContent();
   }
 
-  // DELETE /books/{id}
   [HttpDelete("{id:int}")]
   public async Task<IActionResult> Delete(int id)
   {
@@ -90,19 +87,6 @@ public class BooksController : ControllerBase
 
     _db.Books.Remove(book);
     await _db.SaveChangesAsync();
-    return NoContent(); // 204
+    return NoContent();
   }
-
-  private static BookDto ToDto(Book b) => new()
-  {
-    Id = b.Id,
-    Title = b.Title,
-    Year = b.Year,
-    Author = new AuthorDto
-    {
-      Id = b.Author!.Id,
-      FirstName = b.Author.FirstName,
-      LastName = b.Author.LastName
-    }
-  };
 }

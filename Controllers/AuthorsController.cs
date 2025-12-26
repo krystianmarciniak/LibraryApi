@@ -3,6 +3,7 @@ using LibraryApi.Dtos;
 using LibraryApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using LibraryApi.Mapping;
 
 namespace LibraryApi.Controllers;
 
@@ -14,22 +15,23 @@ public class AuthorsController : ControllerBase
     public AuthorsController(AppDbContext db) => _db = db;
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors()
     {
         var authors = await _db.Authors.AsNoTracking().ToListAsync();
-        return Ok(authors.Select(ToDto));
+        return Ok(authors.Select(a => a.ToDto()));
+
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<AuthorDto>> GetById(int id)
+    public async Task<ActionResult<AuthorDto>> GetAuthor(int id)
     {
         var author = await _db.Authors.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
         if (author is null) return NotFound();
-        return Ok(ToDto(author));
+        return Ok(author.ToDto());
     }
 
     [HttpPost]
-    public async Task<ActionResult<AuthorDto>> Create([FromBody] AuthorCreateDto dto)
+    public async Task<ActionResult<AuthorDto>> CreateAuthor([FromBody] AuthorCreateDto dto)
     {
         if (!ModelState.IsValid) return BadRequest();
 
@@ -42,7 +44,7 @@ public class AuthorsController : ControllerBase
         _db.Authors.Add(author);
         await _db.SaveChangesAsync();
 
-        return Created($"/authors/{author.Id}", ToDto(author)); // 201
+        return Created($"/authors/{author.Id}", author.ToDto()); 
     }
 
     [HttpPut("{id:int}")]
@@ -58,7 +60,7 @@ public class AuthorsController : ControllerBase
         author.LastName = dto.LastName;
 
         await _db.SaveChangesAsync();
-        return NoContent(); // 204
+        return NoContent(); 
     }
 
     [HttpDelete("{id:int}")]
@@ -69,13 +71,8 @@ public class AuthorsController : ControllerBase
 
         _db.Authors.Remove(author);
         await _db.SaveChangesAsync();
-        return NoContent(); // 204
+        return NoContent(); 
     }
 
-    private static AuthorDto ToDto(Author a) => new()
-    {
-        Id = a.Id,
-        FirstName = a.FirstName,
-        LastName = a.LastName
-    };
+   
 }
