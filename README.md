@@ -31,11 +31,3 @@ Uwaga: w trybie deweloperskim baza danych jest resetowana przy starcie aplikacji
 
 3. Po uruchomieniu aplikacji testy automatyczne dostępne są pod adresem:
 http://localhost:5147/index.html
-
-
-
-Testy można uruchomić przez http://localhost:5147/index.html
-
-
-
-
